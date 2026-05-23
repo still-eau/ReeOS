@@ -57,7 +57,8 @@ void idt_set_gate(
     uint8_t index,
     uint64_t handler,
     uint16_t selector,
-    uint8_t flags
+    uint8_t flags,
+    uint8_t ist
 );
 
 // Load IDTR register (ASM)

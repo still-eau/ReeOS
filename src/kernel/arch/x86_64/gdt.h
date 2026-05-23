@@ -19,20 +19,39 @@
 
 #include <stdint.h>
 
-// Number of GDT entries
 #define GDT_ENTRIES 5
 
-// Segment flags
-#define GDT_PRESENT 0x80
-#define GDT_RING0 0x00
-#define GDT_RING3 0x60
-#define GDT_CODE 0x9A
-#define GDT_DATA 0x92
+// Access bytes
+#define GDT_CODE_PL0 0x9A
+#define GDT_DATA_PL0 0x92
+#define GDT_CODE_PL3 0xFA
+#define GDT_DATA_PL3 0xF2
 
 // Segment selectors
 #define SELECTOR_CODE_64 0x08
 #define SELECTOR_DATA_64 0x10
 
-// GDT entry structure
+// Single GDT entry
+typedef struct __attribute__((packed))
+{
+    uint16_t limit_low;
+    uint16_t base_low;
+    uint8_t base_mid;
+    uint8_t access;
+    uint8_t granularity;
+    uint8_t base_high;
 
-// NOT FINISH I WILL FINISH HIM LATER (i go to eat)
+} GDTEntry;
+
+// GDTR structure used by lgdt
+typedef struct __attribute__((packed))
+{
+    uint16_t limit;
+    uint64_t base;
+
+} GDTR;
+
+// Initialize GDT
+void gdt_init(void);
+
+#endif

@@ -107,6 +107,6 @@ incbin "boot2.bin"
 ; Pad Stage 2 to 8 sectors (4096 bytes)
 times 4608 - ($ - $$) db 0
 
-; Reserve space for kernel (8 sectors = 4096 bytes of zeroes starting at sector 10)
-; Can be replaced with actual kernel later using dd or build tools
-times 8704 - ($ - $$) db 0
+; Reserve space for kernel: 120 sectors at BIOS sector 10 (1-indexed) = LBA 9 = byte 4608.
+; Total image = 4608 (boot+stage2) + 120*512 (kernel) = 66048 bytes = 129 sectors.
+times 66048 - ($ - $$) db 0

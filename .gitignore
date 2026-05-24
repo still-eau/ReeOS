@@ -1,1 +1,4 @@
 /ReeOS.img
+*.o
+*.bin
+*.elf

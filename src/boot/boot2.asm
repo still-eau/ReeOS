@@ -3,6 +3,7 @@
 ; Checks CPU support for 64-bit long mode, sets up 4-level paging,
 ; and switches from 16-bit -> 32-bit protected mode -> 64-bit long mode.
 ; Loads the kernel from disk sector 10 to physical address 0x100000 (1MB).
+; 80 sectors = 40 KB reserved for the kernel binary.
 
 [bits 16]
 [org 0x8000]
@@ -113,7 +114,7 @@ load_kernel:
     xor bx, bx                  ; offset 0
 
     mov ah, 0x02                ; BIOS read sectors function
-    mov al, 8                   ; read 8 sectors (4KB kernel)
+    mov al, 120                 ; read 120 sectors (60KB kernel)
     mov ch, 0                   ; cylinder 0
     mov dh, 0                   ; head 0
     mov cl, 10                  ; kernel starts at sector 10
@@ -225,21 +226,20 @@ entry_long_mode:
     mov rsp, 0x90000
 
     ; copy kernel from temp buffer 0x10000 to final physical address 0x100000 (1MB)
-    ; copying 512 QWORDs (4096 bytes) using native 64-bit instruction
+    ; kernel.bin is ~33 KB (80 sectors reserved): copy 8192 QWORDs = 64 KB
+    ; to cover .text (0x100000) + .rodata (0x108000) + .data (0x10C000) with margin.
     mov rsi, 0x10000
     mov rdi, 0x100000
-    mov rcx, 512
+    mov rcx, 8192       ; 8192 * 8 = 65536 bytes (64 KB)
     rep movsq
 
     ; draw bootloader dashboard directly to VGA memory (0xB8000)
     call clear_screen_64
     call display_system_info_64
 
-    ; halt CPU, kernel space is loaded at 0x100000 and ready
-.halt_loop:
-    cli
-    hlt
-    jmp .halt_loop
+    ; hand off to the kernel — jump to physical address 0x100000 (_start in kernel_entry.asm)
+    mov     rax, 0x100000
+    jmp     rax
 
 clear_screen_64:
     mov rdi, 0xb8000
@@ -316,6 +316,6 @@ msg_ui_cpu_ok:     db "[ OK ] CPU Capability verified: AMD64/Intel64 Long Mode i
 msg_ui_paging_ok:  db "[ OK ] 4-Level Paging: 1 GB of Physical RAM identity-mapped (PML4 -> PDPT -> PD).", 0
 msg_ui_gdt_ok:     db "[ OK ] 64-bit Global Descriptor Table loaded (CS Selector 0x08, SS/DS 0x00).", 0
 msg_ui_success:    db " SUCCESS: Kernel loaded at physical address: 0x0000000000100000! ", 0
-msg_ui_halted:     db "[ INFO ] Kernel is ready. CPU enters IDLE (hlt loop).", 0
+msg_ui_halted:     db "[ INFO ] Jumping to kernel entry point at 0x100000...", 0
 
 %include "gdt.asm"

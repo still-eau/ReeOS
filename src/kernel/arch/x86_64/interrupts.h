@@ -35,6 +35,10 @@ void c_isr_alignment_check    (ISRFrame *f);
 __attribute__((noreturn)) void c_isr_machine_check(ISRFrame *f);
 void c_isr_simd_error         (ISRFrame *f);
 
+// cli and sti
+void cli(void);
+void sti(void);
+
 // IRQs and syscall
 void c_irq_handler    (ISRFrame *f, uint64_t irq_num);
 void c_syscall_handler(ISRFrame *f);

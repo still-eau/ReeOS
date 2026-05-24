@@ -247,3 +247,14 @@ void c_syscall_handler(ISRFrame *f)
         break;
     }
 }
+
+// cli and sti
+void cli(void)
+{
+    __asm__ volatile("cli");
+}
+
+void sti(void)
+{
+    __asm__ volatile("sti");
+}

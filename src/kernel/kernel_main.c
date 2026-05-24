@@ -9,6 +9,7 @@
 #include "arch/x86_64/pic.h"
 #include "arch/x86_64/interrupts.h"
 #include "arch/x86_64/pit.h"
+#include "mm/pmm.h"
 
 // Minimal VGA text-mode helper
 #define VGA_BASE    ((volatile uint16_t *)0xB8000)
@@ -160,6 +161,24 @@ static int init_pit_module(void)
     return 0;
 }
 
+static int init_pmm_module(void)
+{
+    // We register it in the interface registry
+    static PMMInterface pmm_if = {
+        .init_pmm = init_pmm,
+        .allocate_frame = allocate_frame,
+        .free_frame = free_frame,
+        .allocate_frame_range = allocate_frame_range,
+        .free_frame_range = free_frame_range,
+        .dump_pmm = dump_pmm
+    };
+    kernel_register_interface("PMM", &pmm_if);
+
+    // pmm_test();
+
+    return 0;
+}
+
 // Subsystem module definitions
 typedef enum {
     MOD_STATE_OFF = 0,
@@ -181,7 +200,8 @@ static KernelModule modules[] = {
     { "IDT",         "Interrupt descriptor table & traps",    init_idt_module,        MOD_STATE_OFF },
     { "PIC",         "8259 PIC vectors configuration",        init_pic_module,        MOD_STATE_OFF },
     { "INTERRUPTS",  "CPU interrupts enablement & core IRQs", init_interrupts_module, MOD_STATE_OFF },
-    { "PIT", "Programmable interval timer", init_pit_module, MOD_STATE_OFF }
+    { "PIT", "Programmable interval timer", init_pit_module, MOD_STATE_OFF },
+    { "PMM", "Physical Memory Manager & Bitmap", init_pmm_module, MOD_STATE_OFF },
 };
 
 // Central loader that orchestrates the boot sequence

@@ -61,6 +61,7 @@ $CSources = @(
     (Join-Path $KernelDir "utils\logger.c"),
     (Join-Path $RootDir   "src\include\stdio.c"),
     (Join-Path $ArchDir   "pit.c")
+    (Join-Path $KernelDir "mm\pmm.c")
 )
 
 # ---------------------------------------------------------------------------

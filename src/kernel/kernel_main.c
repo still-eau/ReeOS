@@ -1,3 +1,4 @@
+
 // ReeOS - Kernel module loader orchestrator
 
 #include <stdint.h>
@@ -177,7 +178,7 @@ void kernel_main(void)
 
     // Draw clean title banner
     vga_write_string(1, 4, 0x1E, "====================================================================");
-    vga_write_string(2, 4, 0x1F, "              ReeOS v0.1.0 -- x86_64 Kernel Loader                  ");
+    vga_write_string(2, 4, 0x1F, "            ReeOS v0.1.0 -- x86_64 Kernel Loader                    ");
     vga_write_string(3, 4, 0x1E, "====================================================================");
 
     vga_write_string(5, 6, 0x1B, "System orchestrator initializing core modules...");
@@ -187,30 +188,50 @@ void kernel_main(void)
         modules[i].state = MOD_STATE_LOADING;
         int row = 7 + i;
 
-        // Print current loading module
-        vga_write_string(row, 6,  0x1F, "-> Loading ");
-        vga_write_string(row, 17, 0x1F, modules[i].name);
-        vga_write_string(row, 28, 0x17, "- ");
-        vga_write_string(row, 30, 0x17, modules[i].description);
-
         int res = modules[i].init();
+        
+        // Print current loading module
+        LoggerInterface *logger = (LoggerInterface *)kernel_get_interface("LOGGER");
+        if (logger != NULL) {
+            logger->log_debug("-> Loading %s - %s", modules[i].name, modules[i].description);
+        } else {
+            vga_write_string(row, 6,  0x1F, "-> Loading ");
+            vga_write_string(row, 17, 0x1F, modules[i].name);
+            vga_write_string(row, 28, 0x17, "- ");
+            vga_write_string(row, 30, 0x17, modules[i].description);
+        }
+
         if (res == 0) {
             modules[i].state = MOD_STATE_RUNNING;
-            vga_write_string(row, 68, 0x1A, "[ OK ]");
+            if (logger != NULL) {
+                logger->log_info("[%s] loaded successfully [ OK ]", modules[i].name);
+            } else {
+                vga_write_string(row, 68, 0x1A, "[ OK ]");
+            }
         } else {
             modules[i].state = MOD_STATE_ERROR;
-            vga_write_string(row, 68, 0x1C, "[ FAIL ]");
-            
-            vga_write_string(15, 6, 0x1C, "CRITICAL ERROR: Failed to load system module!");
+            if (logger != NULL) {
+                logger->log_error("[%s] failed to initialize [ FAIL ]", modules[i].name);
+                logger->panic("CRITICAL ERROR: Failed to load system module!");
+            } else {
+                vga_write_string(row, 68, 0x1C, "[ FAIL ]");
+                vga_write_string(15, 6, 0x1C, "CRITICAL ERROR: Failed to load system module!");
+            }
             for (;;) {
                 __asm__ volatile("hlt");
             }
         }
     }
 
-    vga_write_string(13, 4, 0x1E, "--------------------------------------------------------------------");
-    vga_write_string(14, 6, 0x1E, "STATUS: Kernel running. Decoupled Interface Registry is active.");
-    vga_write_string(15, 6, 0x1A, "Waiting for hardware interrupts (Timer & Keyboard live)...");
+    LoggerInterface *logger = (LoggerInterface *)kernel_get_interface("LOGGER");
+    if (logger != NULL) {
+        logger->log_info("STATUS: Kernel running. Decoupled Interface Registry is active.");
+        logger->log_info("Waiting for hardware interrupts (Timer & Keyboard live)...");
+    } else {
+        vga_write_string(13, 4, 0x1E, "--------------------------------------------------------------------");
+        vga_write_string(14, 6, 0x1E, "STATUS: Kernel running. Decoupled Interface Registry is active.");
+        vga_write_string(15, 6, 0x1A, "Waiting for hardware interrupts (Timer & Keyboard live)...");
+    }
 
     // Loop forever and yield to interrupts
     for (;;) {

@@ -8,6 +8,7 @@
 #include "arch/x86_64/idt.h"
 #include "arch/x86_64/pic.h"
 #include "arch/x86_64/interrupts.h"
+#include "arch/x86_64/pit.h"
 
 // Minimal VGA text-mode helper
 #define VGA_BASE    ((volatile uint16_t *)0xB8000)
@@ -147,6 +148,18 @@ static int init_interrupts_module(void)
     return 0;
 }
 
+static int init_pit_module(void)
+{
+    pit_init(100);
+    
+    static PitInterface pit_if = {
+        .get_ticks = pit_get_ticks
+    };
+    kernel_register_interface("PIT", &pit_if);
+    
+    return 0;
+}
+
 // Subsystem module definitions
 typedef enum {
     MOD_STATE_OFF = 0,
@@ -167,7 +180,8 @@ static KernelModule modules[] = {
     { "GDT",         "Global descriptor table & segments",    init_gdt_module,        MOD_STATE_OFF },
     { "IDT",         "Interrupt descriptor table & traps",    init_idt_module,        MOD_STATE_OFF },
     { "PIC",         "8259 PIC vectors configuration",        init_pic_module,        MOD_STATE_OFF },
-    { "INTERRUPTS",  "CPU interrupts enablement & core IRQs", init_interrupts_module, MOD_STATE_OFF }
+    { "INTERRUPTS",  "CPU interrupts enablement & core IRQs", init_interrupts_module, MOD_STATE_OFF },
+    { "PIT", "Programmable interval timer", init_pit_module, MOD_STATE_OFF }
 };
 
 // Central loader that orchestrates the boot sequence
@@ -234,7 +248,22 @@ void kernel_main(void)
     }
 
     // Loop forever and yield to interrupts
+    uint64_t next_log_tick = 500; 
+
     for (;;) {
+        // Puts the CPU on pause until the next interruption to save energy
         __asm__ volatile("hlt");
+
+        // We check if 5 seconds have passed
+       // if (pit_get_ticks() >= next_log_tick) {
+            //LoggerInterface *logger = (LoggerInterface *)kernel_get_interface("LOGGER");
+            //if (logger != NULL) {
+             //   logger->log_info("Uptime refresh: %d seconds elapsed.", (int)(pit_get_ticks() / 100));
+            //}
+            
+            // Schedules the next log in 5 seconds
+           // next_log_tick = pit_get_ticks() + 500;
+        //}
+   // }
     }
 }

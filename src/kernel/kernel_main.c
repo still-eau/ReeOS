@@ -248,7 +248,7 @@ void kernel_main(void)
     }
 
     // Loop forever and yield to interrupts
-    uint64_t next_log_tick = 500; 
+    // uint64_t next_log_tick = 500; 
 
     for (;;) {
         // Puts the CPU on pause until the next interruption to save energy

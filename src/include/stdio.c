@@ -1,3 +1,7 @@
+// =============================================================================
+//  ReeOS - Standard input/output library implementation
+// =============================================================================
+
 #include "stdio.h"
 #include <stdarg.h>
 #include <stddef.h>
@@ -47,7 +51,7 @@ static void format_integer(char *out, size_t *out_idx, size_t max_len, uint64_t 
     
     if (!left_align) {
         if (pad_char == '0') {
-            // print sign before zero-padding
+            // Print sign before zero-padding
             if (neg && i < max_len - 1) {
                 out[i++] = '-';
                 neg = 0;
@@ -56,7 +60,7 @@ static void format_integer(char *out, size_t *out_idx, size_t max_len, uint64_t 
                 out[i++] = '0';
             }
         } else {
-            // print spaces before sign
+            // Print spaces before sign
             while (pad_len-- > 0 && i < max_len - 1) {
                 out[i++] = ' ';
             }
@@ -72,12 +76,12 @@ static void format_integer(char *out, size_t *out_idx, size_t max_len, uint64_t 
         }
     }
     
-    // print number characters
+    // Print number characters
     for (int j = 0; j < len && i < max_len - 1; j++) {
         out[i++] = num_buf[j];
     }
     
-    // spaces for left-alignment
+    // Spaces for left-alignment
     if (left_align) {
         while (pad_len-- > 0 && i < max_len - 1) {
             out[i++] = ' ';
@@ -124,7 +128,7 @@ int vsnprintf_c(char *const Buffer, const size_t BufferCount, const char *const 
     
     while (*fmt && i < BufferCount - 1) {
         if (*fmt == '%') {
-            fmt++; // skip '%'
+            fmt++; // Skip '%'
             
             if (*fmt == '%') {
                 Buffer[i++] = '%';
@@ -132,7 +136,7 @@ int vsnprintf_c(char *const Buffer, const size_t BufferCount, const char *const 
                 continue;
             }
             
-            // flags
+            // Flags
             int left_align = 0;
             char pad_char = ' ';
             
@@ -142,14 +146,14 @@ int vsnprintf_c(char *const Buffer, const size_t BufferCount, const char *const 
                 fmt++;
             }
             
-            // width
+            // Width
             int width = 0;
             while (*fmt >= '0' && *fmt <= '9') {
                 width = width * 10 + (*fmt - '0');
                 fmt++;
             }
             
-            // length modifier
+            // Length modifier
             int is_long = 0;
             if (*fmt == 'l') {
                 is_long = 1;
@@ -206,7 +210,7 @@ int vsnprintf_c(char *const Buffer, const size_t BufferCount, const char *const 
                 format_integer(Buffer, &i, BufferCount, val, 0, 16, width, pad_char, left_align, spec == 'X');
             }
             else {
-                // fallback
+                // Fallback
                 Buffer[i++] = '%';
                 if (i < BufferCount - 1) {
                     Buffer[i++] = spec;

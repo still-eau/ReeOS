@@ -1,46 +1,44 @@
+// =============================================================================
+//  ReeOS - Global Descriptor Table (GDT) Header
+// =============================================================================
+//
+//  Contains:
+//   - GDT structures
+//   - GDT constants
+//   - GDT function declarations
+//
+//  Architecture:
+//      x86_64
+//
+// =============================================================================
+
 #ifndef GDT_H
 #define GDT_H
 
-/*
- * ============================================================================
- *  ReeOS - Global Descriptor Table (GDT) Header
- * ============================================================================
- *
- *  Contains:
- *   - GDT structures
- *   - GDT constants
- *   - GDT function declarations
- *
- *  Architecture:
- *      x86_64
- *
- * ============================================================================
- */
-
 #include <stdint.h>
 
-#define GDT_ENTRIES 7 // null, kcode, kdata, udata, ucode, tss x2
+#define GDT_ENTRIES 7 // Null, kcode, kdata, udata, ucode, tss x2
 
-// access bytes
+// Access bytes
 #define GDT_ACCESS_CODE_PL0 0x9A
 #define GDT_ACCESS_DATA_PL0 0x92
 #define GDT_ACCESS_CODE_PL3 0xFA
 #define GDT_ACCESS_DATA_PL3 0xF2
 #define GDT_ACCESS_TSS 0x89
 
-// Flags (bytes granularity : G / DB / L / AVL / limit[19:16])
+// Flags (bytes granularity: G / DB / L / AVL / limit[19:16])
 #define GDT_FLAGS_64_CODE 0xA0 // G=1 L=1 DB=0
 #define GDT_FLAGS_DATA 0xC0 // G=1 DB=1 (limit ignored in 64bit)
 
-// kernel selectors (RPL=0)
+// Kernel selectors (RPL=0)
 #define GDT_KERNEL_CODE_SEL 0x08
 #define GDT_KERNEL_DATA_SEL 0x10
 
-// user selectors (RPL=3) orders forced by SYSCALL/SYSRET
-#define GDT_USER_DATA_SEL 0x1B // index 3 / RPL=3
-#define GDT_USER_CODE_SEL 0x23 // index 4 / RPL=3
+// User selectors (RPL=3) orders forced by SYSCALL/SYSRET
+#define GDT_USER_DATA_SEL 0x1B // Index 3 / RPL=3
+#define GDT_USER_CODE_SEL 0x23 // Index 4 / RPL=3
 
-#define GDT_TSS_SEL 0x28 // index 5
+#define GDT_TSS_SEL 0x28 // Index 5
 
 typedef struct __attribute__((packed))
 {

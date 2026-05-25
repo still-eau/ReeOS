@@ -1,8 +1,10 @@
-
-// ReeOS - Kernel module loader orchestrator
+// =============================================================================
+//  ReeOS - Kernel module loader orchestrator
+// =============================================================================
 
 #include <stdint.h>
 #include <stddef.h>
+#include "terminal.h"
 #include "utils/logger.h"
 #include "arch/x86_64/gdt.h"
 #include "arch/x86_64/idt.h"
@@ -135,12 +137,12 @@ static int init_pic_module(void)
 
 static int init_interrupts_module(void)
 {
-    // Enable timer and keyboard interrupts
+    // Unmask hardware lines on PIC
     pic_unmask_irq(IRQ_TIMER);
     pic_unmask_irq(IRQ_KEYBOARD);
 
-    // Enable CPU hardware interrupts
-    __asm__ volatile("sti");
+    // FIX: "sti" instruction has been removed from here to avoid 
+    // an IRQ trigger before the complete configuration of the PIT.
 
     static InterruptInterface int_if = {
         .register_handler = irq_register_handler
@@ -163,7 +165,6 @@ static int init_pit_module(void)
 
 static int init_pmm_module(void)
 {
-    // We register it in the interface registry
     static PMMInterface pmm_if = {
         .init_pmm = init_pmm,
         .allocate_frame = allocate_frame,
@@ -172,10 +173,9 @@ static int init_pmm_module(void)
         .free_frame_range = free_frame_range,
         .dump_pmm = dump_pmm
     };
-    kernel_register_interface("PMM", &pmm_if);
 
     // pmm_test();
-
+    kernel_register_interface("PMM", &pmm_if);
     return 0;
 }
 
@@ -200,39 +200,45 @@ static KernelModule modules[] = {
     { "IDT",         "Interrupt descriptor table & traps",    init_idt_module,        MOD_STATE_OFF },
     { "PIC",         "8259 PIC vectors configuration",        init_pic_module,        MOD_STATE_OFF },
     { "INTERRUPTS",  "CPU interrupts enablement & core IRQs", init_interrupts_module, MOD_STATE_OFF },
-    { "PIT", "Programmable interval timer", init_pit_module, MOD_STATE_OFF },
-    { "PMM", "Physical Memory Manager & Bitmap", init_pmm_module, MOD_STATE_OFF },
+    { "PIT",         "Programmable interval timer",           init_pit_module,        MOD_STATE_OFF },
+    { "PMM",         "Physical Memory Manager & Bitmap",      init_pmm_module,        MOD_STATE_OFF },
 };
 
 // Central loader that orchestrates the boot sequence
 void kernel_main(void)
 {
-    // Clear screen with a nice blue background
+    terminal_init(); 
     vga_clear(0x19);
 
-    // Draw clean title banner
+    // Draw the banner
     vga_write_string(1, 4, 0x1E, "====================================================================");
     vga_write_string(2, 4, 0x1F, "            ReeOS v0.1.0 -- x86_64 Kernel Loader                    ");
     vga_write_string(3, 4, 0x1E, "====================================================================");
-
     vga_write_string(5, 6, 0x1B, "System orchestrator initializing core modules...");
 
+    // ---------------------------------------------------------
+    // SECURITY TEST 1: Do we reach here?
+    // ---------------------------------------------------------
+    vga_write_string(7, 6, 0x1A, "DEBUG: About to enter module loop...");
+
     int total_modules = sizeof(modules) / sizeof(modules[0]);
+    
     for (int i = 0; i < total_modules; i++) {
         modules[i].state = MOD_STATE_LOADING;
-        int row = 7 + i;
+
+        // security test
+        vga_write_string(8 + i, 6, 0x1E, "DEBUG: Init module: ");
+        vga_write_string(8 + i, 26, 0x1F, modules[i].name);
 
         int res = modules[i].init();
         
-        // Print current loading module
+        vga_write_string(8 + i, 40, 0x1A, "[DONE]"); // display if init is not crash
+
         LoggerInterface *logger = (LoggerInterface *)kernel_get_interface("LOGGER");
         if (logger != NULL) {
-            logger->log_debug("-> Loading %s - %s", modules[i].name, modules[i].description);
+            logger->log_debug("Loading %s", modules[i].name);
         } else {
-            vga_write_string(row, 6,  0x1F, "-> Loading ");
-            vga_write_string(row, 17, 0x1F, modules[i].name);
-            vga_write_string(row, 28, 0x17, "- ");
-            vga_write_string(row, 30, 0x17, modules[i].description);
+            vga_write_string(6, 6, 0x1F, "-> Bootstrapping LOGGER subsystem...");
         }
 
         if (res == 0) {
@@ -240,7 +246,7 @@ void kernel_main(void)
             if (logger != NULL) {
                 logger->log_info("[%s] loaded successfully [ OK ]", modules[i].name);
             } else {
-                vga_write_string(row, 68, 0x1A, "[ OK ]");
+                vga_write_string(6, 68, 0x1A, "[ OK ]");
             }
         } else {
             modules[i].state = MOD_STATE_ERROR;
@@ -248,42 +254,51 @@ void kernel_main(void)
                 logger->log_error("[%s] failed to initialize [ FAIL ]", modules[i].name);
                 logger->panic("CRITICAL ERROR: Failed to load system module!");
             } else {
-                vga_write_string(row, 68, 0x1C, "[ FAIL ]");
-                vga_write_string(15, 6, 0x1C, "CRITICAL ERROR: Failed to load system module!");
+                vga_write_string(6, 68, 0x1C, "[ FAIL ]");
+                // simulate raw hardware panic if logger is not operational
+                vga_write_string(15, 6, 0x1C, "CRITICAL HARDWARE FAILURE DURING BOOT");
             }
+            
+            // safety lock in case of critical failure
             for (;;) {
                 __asm__ volatile("hlt");
             }
         }
     }
 
+    // status of the kernel and opening of CPU hardware interrupts
     LoggerInterface *logger = (LoggerInterface *)kernel_get_interface("LOGGER");
+    
     if (logger != NULL) {
         logger->log_info("STATUS: Kernel running. Decoupled Interface Registry is active.");
-        logger->log_info("Waiting for hardware interrupts (Timer & Keyboard live)...");
-    } else {
-        vga_write_string(13, 4, 0x1E, "--------------------------------------------------------------------");
-        vga_write_string(14, 6, 0x1E, "STATUS: Kernel running. Decoupled Interface Registry is active.");
-        vga_write_string(15, 6, 0x1A, "Waiting for hardware interrupts (Timer & Keyboard live)...");
+        logger->log_info("Enabling CPU hardware interrupts safely...");
     }
 
-    // Loop forever and yield to interrupts
-    // uint64_t next_log_tick = 500; 
+    // critical point : the shield is up, the IDT and the PIT are synchronized.
+    __asm__ volatile("sti");
+
+    if (logger != NULL) {
+        logger->log_info("Waiting for hardware interrupts (Timer & Keyboard live)...");
+    }
+
+    // main loop of the kernel (hardware awakening via PIT)
+    uint64_t next_log_tick = 100; // 100 ticks = 1 second at 100Hz frequency
 
     for (;;) {
-        // Puts the CPU on pause until the next interruption to save energy
+        // CPU goes to sleep in low power mode waiting for the next clock signal
         __asm__ volatile("hlt");
 
-        // We check if 5 seconds have passed
-       // if (pit_get_ticks() >= next_log_tick) {
-            //LoggerInterface *logger = (LoggerInterface *)kernel_get_interface("LOGGER");
-            //if (logger != NULL) {
-             //   logger->log_info("Uptime refresh: %d seconds elapsed.", (int)(pit_get_ticks() / 100));
-            //}
+        // As soon as the clock interrupt (INT 0x20) wakes up the CPU, we check the Uptime
+        if (pit_get_ticks() >= next_log_tick) {
             
-            // Schedules the next log in 5 seconds
-           // next_log_tick = pit_get_ticks() + 500;
-        //}
-   // }
+            logger = (LoggerInterface *)kernel_get_interface("LOGGER");
+            if (logger != NULL) {
+                // writes the uptime in a smooth way in the sliding flow of the terminal
+                logger->log_info("Uptime: %d seconds.", (int)(pit_get_ticks() / 100));
+            }
+            
+            // Schedule the next display event (+1 second)
+            next_log_tick = pit_get_ticks() + 100;
+        }
     }
 }

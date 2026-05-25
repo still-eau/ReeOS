@@ -1,15 +1,17 @@
-; Global Descriptor Table (GDT) for mode transitions.
+; =============================================================================
+;  ReeOS - Global Descriptor Table (GDT) for mode transitions
+; =============================================================================
 ; We need a temporary 32-bit GDT to switch from real mode to protected mode,
 ; and then a 64-bit GDT to finally leap into 64-bit long mode.
 
 align 4
 gdt_start_32:
-    ; null descriptor is mandatory
+    ; Null descriptor is mandatory
     dd 0
     dd 0
 
 gdt_code_32:
-    ; 32-bit code descriptor for kernel. base=0, limit=4GB, granularity=page
+    ; 32-bit code descriptor for kernel. Base=0, Limit=4GB, Granularity=page
     dw 0xffff
     dw 0x0000
     db 0x00
@@ -18,7 +20,7 @@ gdt_code_32:
     db 0x00
 
 gdt_data_32:
-    ; 32-bit data descriptor. base=0, limit=4GB, granularity=page
+    ; 32-bit data descriptor. Base=0, Limit=4GB, Granularity=page
     dw 0xffff
     dw 0x0000
     db 0x00
@@ -39,11 +41,11 @@ DATA_SEG_32 equ gdt_data_32 - gdt_start_32
 
 align 8
 gdt_start_64:
-    ; another null descriptor for 64-bit GDT
+    ; Another null descriptor for 64-bit GDT
     dq 0
 
 gdt_code_64:
-    ; 64-bit code descriptor. base and limit are ignored in long mode, but L-bit (long mode) must be 1.
+    ; 64-bit code descriptor. Base and limit are ignored in long mode, but L-bit (long mode) must be 1.
     dw 0x0000
     dw 0x0000
     db 0x00
@@ -52,7 +54,7 @@ gdt_code_64:
     db 0x00
 
 gdt_data_64:
-    ; 64-bit data descriptor. required for configuring data segments in long mode.
+    ; 64-bit data descriptor. Required for configuring data segments in long mode.
     dw 0x0000
     dw 0x0000
     db 0x00
@@ -64,7 +66,7 @@ gdt_end_64:
 
 gdt_descriptor_64:
     dw gdt_end_64 - gdt_start_64 - 1
-    dq gdt_start_64
+    dd gdt_start_64
 
 ; Selectors for 64-bit segments
 CODE_SEG_64 equ gdt_code_64 - gdt_start_64

@@ -1,27 +1,25 @@
+// =============================================================================
+//  ReeOS - 8259 Programmable Interrupt Controller (PIC) Header
+// =============================================================================
+//
+//  The legacy 8259A PIC ships with IRQ0-7 wired to INT vectors 8-15.
+//  That directly conflicts with CPU exception vectors (#DF=8, #MF=16, ...).
+//  We must remap both PICs before enabling interrupts (STI).
+//
+//  After remapping:
+//    IRQ0-7  (master PIC)  → INT 32-39  (0x20-0x27)
+//    IRQ8-15 (slave  PIC)  → INT 40-47  (0x28-0x2F)
+//
+// =============================================================================
+
 #ifndef PIC_H
 #define PIC_H
-
-/*
- * ============================================================================
- *  ReeOS - 8259 Programmable Interrupt Controller (PIC) header
- * ============================================================================
- *
- *  The legacy 8259A PIC ships with IRQ0-7 wired to INT vectors 8-15.
- *  That directly conflicts with CPU exception vectors (#DF=8, #MF=16, ...).
- *  We must remap both PICs before enabling interrupts (STI).
- *
- *  After remapping:
- *    IRQ0-7  (master PIC)  → INT 32-39  (0x20-0x27)
- *    IRQ8-15 (slave  PIC)  → INT 40-47  (0x28-0x2F)
- *
- * ============================================================================
- */
 
 #include <stdint.h>
 
 // Remapped IRQ base vectors
-#define PIC_IRQ_BASE_MASTER 0x20   /* IRQ0  → INT 32 */
-#define PIC_IRQ_BASE_SLAVE  0x28   /* IRQ8  → INT 40 */
+#define PIC_IRQ_BASE_MASTER 0x20   // IRQ0  → INT 32
+#define PIC_IRQ_BASE_SLAVE  0x28   // IRQ8  → INT 40
 
 // Individual IRQ lines
 #define IRQ_TIMER       0
@@ -43,4 +41,4 @@ void pic_mask_all(void);
 void pic_unmask_irq(uint8_t irq);
 void pic_eoi(uint8_t irq);
 
-#endif /* PIC_H */
+#endif // PIC_H

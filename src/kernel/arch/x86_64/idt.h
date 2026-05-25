@@ -1,22 +1,24 @@
+// =============================================================================
+//  ReeOS - Interrupt Descriptor Table (IDT) Header
+// =============================================================================
+
 #ifndef IDT_H
 #define IDT_H
-
-// Interrupt Descriptor Table structures and interface for x86_64.
 
 #include <stdint.h>
 
 #define IDT_SIZE 256
 
-// type_attributes flag bits
+// Type_attributes flag bits
 #define IDT_PRESENT        0x80
 #define IDT_INTERRUPT_GATE 0x0E
 #define IDT_TRAP_GATE      0x0F
 
-// descriptor privilege level
+// Descriptor privilege level
 #define IDT_RING0          0x00
 #define IDT_RING3          0x60
 
-// single 16-byte IDT gate descriptor
+// Single 16-byte IDT gate descriptor
 typedef struct __attribute__((packed))
 {
     uint16_t offset_low;

@@ -1,4 +1,7 @@
-// ReeOS pmm functions
+// =============================================================================
+//  ReeOS - Physical Memory Manager (PMM) implementation
+// =============================================================================
+
 #include "pmm.h"
 #include "../arch/x86_64/interrupts.h"
 #include <stddef.h>
@@ -6,7 +9,7 @@
 
 extern void *kernel_get_interface(const char *name);
 
-// constants
+// Constants
 #define PMM_FRAME_SIZE 4096 // 4KB frame size
 
 // PMM data
@@ -15,7 +18,7 @@ static size_t pmm_bitmap_size = 0;
 static uint64_t pmm_total_frames = 0;
 static uint64_t pmm_used_frames = 0;
 
-// pmm allocations and frees functions
+// PMM allocation and free functions
 static void set_frame_bit(uint64_t frame)
 {
     pmm_bitmap[frame / 8] |= (1 << (frame % 8));
@@ -33,7 +36,7 @@ static int is_frame_set(uint64_t frame)
 
 static int is_frame_clear(uint64_t frame)
 {
-    return !(pmm_bitmap[frame / 8] & (1 << (frame %8)));
+    return !(pmm_bitmap[frame / 8] & (1 << (frame % 8)));
 }
 
 void init_pmm(void *pmm_data, size_t size)
@@ -43,7 +46,7 @@ void init_pmm(void *pmm_data, size_t size)
     pmm_total_frames =  size * 8;
     pmm_used_frames = 0;
 
-    // init all frame as free
+    // Initialize all frames as free
     for (size_t i = 0; i < pmm_bitmap_size; i++)
     {
         pmm_bitmap[i] = 0;
@@ -52,23 +55,43 @@ void init_pmm(void *pmm_data, size_t size)
 
 uint64_t allocate_frame(void)
 {
-    cli();
-    uint64_t frame = 0;
-    // find first frame
-    for (uint64_t i = 0; i < pmm_total_frames; i++)
+    __asm__ volatile("cli"); 
+
+    uint64_t *bitmap64 = (uint64_t *)pmm_bitmap;
+    size_t bitmap64_size = pmm_bitmap_size / sizeof(uint64_t); 
+    uint64_t frame_found = 0;
+    int found = 0;
+
+    for (size_t i = 0; i < bitmap64_size; i++)
     {
-        if (is_frame_clear(i))
+        if (bitmap64[i] != 0xFFFFFFFFFFFFFFFFULL)
         {
-            frame = i;
-            set_frame_bit(i);
-            pmm_used_frames++;
-            // reenable interrupts
-            sti();
-            return frame;
+            uint64_t group = bitmap64[i];
+            for (int bit = 0; bit < 64; bit++)
+            {
+                if (!(group & (1ULL << bit)))
+                {
+                    uint64_t frame = (i * 64) + bit;
+                    if (frame < pmm_total_frames)
+                    {
+                        set_frame_bit(frame);
+                        pmm_used_frames++;
+                        frame_found = frame;
+                        found = 1;
+                        break;
+                    }
+                }
+            }
         }
+        if (found) break;
     }
-    sti();
-    return 0;
+
+    __asm__ volatile("sti"); 
+
+    if (found) {
+        return frame_found;
+    }
+    return 0; 
 }
 
 void free_frame(uint64_t frame)
@@ -91,7 +114,7 @@ uint64_t allocate_frame_range(size_t num_frames)
         return 0;
     }
 
-    // scan the bitmap to find a contiguous block of free frames
+    // Scan the bitmap to find a contiguous block of free frames
     for (uint64_t i = 0; i < pmm_total_frames; i++)
     {
         int found = 1;
@@ -99,6 +122,11 @@ uint64_t allocate_frame_range(size_t num_frames)
         {
             if (is_frame_set(i + j))
             {
+                if (i + j >= pmm_total_frames)
+                {
+                    sti();
+                    return 0;
+                }
                 found = 0;
                 i += j;
                 break; 
@@ -107,7 +135,7 @@ uint64_t allocate_frame_range(size_t num_frames)
 
         if (found)
         {
-            // allocate the contiguous range
+            // Allocate the contiguous range
             for (size_t j = 0; j < num_frames; j++)
             {
                 set_frame_bit(i + j);
@@ -139,7 +167,7 @@ void free_frame_range(uint64_t start_frame, size_t num_frames)
 
 void dump_pmm(void)
 {
-    // logger interface will handle printing this out safely
+    // Logger interface will handle printing this out safely
     void *logger = kernel_get_interface("LOGGER");
     if (logger != NULL)
     {

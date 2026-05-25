@@ -65,10 +65,10 @@ Write-Host "##############################################################" -For
 if (-not $NoRun) {
     if (Get-Command "qemu-system-x86_64" -ErrorAction SilentlyContinue) {
         Write-Host "`n>>> [3/3] Launching QEMU..." -ForegroundColor Yellow
-        Write-Host "    qemu-system-x86_64 -drive format=raw,file=`"$ImgPath`"" -ForegroundColor DarkGray
-        & qemu-system-x86_64 -drive format=raw,file="$ImgPath"
+        
+        Write-Host "    Launching ReeOS.img with Serial redirection..." -ForegroundColor DarkGray
+        & qemu-system-x86_64 -drive format=raw,file=ReeOS.img -d int,cpu_reset -no-reboot
     } else {
-        Write-Host "`n[INFO] QEMU not found in PATH. To run manually:" -ForegroundColor Yellow
-        Write-Host "    qemu-system-x86_64 -drive format=raw,file=`"$ImgPath`"" -ForegroundColor Cyan
+        Write-Host "`n[INFO] QEMU not found in PATH." -ForegroundColor Yellow
     }
 }

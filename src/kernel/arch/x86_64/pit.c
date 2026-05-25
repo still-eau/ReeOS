@@ -1,3 +1,7 @@
+// =============================================================================
+//  ReeOS - Programmable Interval Timer (PIT) implementation
+// =============================================================================
+
 #include "pit.h"
 #include "interrupts.h"
 
@@ -22,6 +26,8 @@ static void pit_callback(unsigned char irq, ISRFrame *frame)
     (void)irq;
     (void)frame;
     timer_ticks++;
+
+    outb(0x20, 0x20);
 }
 
 void pit_init(uint32_t frequency)

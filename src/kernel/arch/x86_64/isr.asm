@@ -1,4 +1,6 @@
-; ReeOS - ISR
+; =============================================================================
+;  ReeOS - Interrupt Service Routines (ISR)
+; =============================================================================
 
 [bits 64]
 
@@ -115,13 +117,13 @@ PIC_EOI         equ 0x20
 ;   so that the frame is identical to isr_with_err.
 %macro isr_no_err 3
 %1:
-    push    qword 0     ; fake error code
-    push    qword %2    ; vector number
+    push    qword 0     ; Fake error code
+    push    qword %2    ; Vector number
     save_regs
-    mov     rdi, rsp    ; arg1 : ISRFrame *
+    mov     rdi, rsp    ; Arg1: ISRFrame *
     call    %3
     restore_regs
-    add     rsp, 16     ; retire vec + err
+    add     rsp, 16     ; Clean up vec + err
     iretq
 %endmacro
 
@@ -130,12 +132,12 @@ PIC_EOI         equ 0x20
 ;   to unify the frame.
 %macro isr_with_err 3
 %1:
-    push    qword %2    ; vector number (err already there, pushed by CPU)
+    push    qword %2    ; Vector number (err already there, pushed by CPU)
     save_regs
     mov     rdi, rsp
     call    %3
     restore_regs
-    add     rsp, 16     ; retire vec + err
+    add     rsp, 16     ; Clean up vec + err
     iretq
 %endmacro
 
@@ -145,11 +147,11 @@ PIC_EOI         equ 0x20
 ;   can dispatch without needing an additional table.
 %macro irq_master 2
 %1:
-    push    qword 0     ; fake error code
+    push    qword 0     ; Fake error code
     push    qword %2    ; IRQ number (0–7)
     save_regs
-    mov     rdi, rsp    ; arg1 : ISRFrame *
-    mov     rsi, %2     ; arg2 : irq_num
+    mov     rdi, rsp    ; Arg1: ISRFrame *
+    mov     rsi, %2     ; Arg2: irq_num
     call    c_irq_handler
     restore_regs
     add     rsp, 16
@@ -172,8 +174,8 @@ PIC_EOI         equ 0x20
     restore_regs
     add     rsp, 16
     mov     al, PIC_EOI
-    out     PIC_SLAVE_CMD,  al  ; slave EOI first
-    out     PIC_MASTER_CMD, al  ; master EOI (cascade)
+    out     PIC_SLAVE_CMD,  al  ; Slave EOI first
+    out     PIC_MASTER_CMD, al  ; Master EOI (cascade)
     iretq
 %endmacro
 
@@ -227,24 +229,24 @@ irq_slave    irq_primary_ata, 14
 irq_slave    irq_secondary_ata, 15
 
 ; Syscall Stub INT 0x80
-; From ring 3 : swapgs to access kernel GS base
+; From ring 3: swapgs to access kernel GS base
 
 isr_syscall:
-    ; swapgs only if coming from ring 3 (CS & 3 == 3)
+    ; Swapgs only if coming from ring 3 (CS & 3 == 3)
     ; Test the CS saved by CPU (at [rsp+8] after fake err push)
-    push    qword 0         ; fake error code
-    push    qword 0x80      ; vecteur
+    push    qword 0         ; Fake error code
+    push    qword 0x80      ; Vector
     save_regs
 
     ; Check caller DPL in saved CS
-    ; Offset in frame : 15 regs × 8 + vec(8) + err(8) + rip(8) + cs(8) = 144
+    ; Offset in frame: 15 regs × 8 + vec(8) + err(8) + rip(8) + cs(8) = 144
     mov     rax, [rsp + 144]
     and     rax, 3
     cmp     rax, 3
     jne     .kernel_call
-    swapgs                  ; switch to kernel GS
+    swapgs                  ; Switch to kernel GS
 .kernel_call:
-    mov     rdi, rsp        ; arg1 : ISRFrame *
+    mov     rdi, rsp        ; Arg1: ISRFrame *
     call    c_syscall_handler
     ; Restore GS if coming from ring 3
     mov     rax, [rsp + 144]

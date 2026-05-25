@@ -1,4 +1,7 @@
-// ReeOS - Kernel Architecture
+// =============================================================================
+//  ReeOS - Interrupt and Exception handler declarations Header
+// =============================================================================
+
 #pragma once
 #include <stdint.h>
 

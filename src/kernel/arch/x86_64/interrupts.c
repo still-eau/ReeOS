@@ -1,4 +1,6 @@
-// ReeOS - Interrupt and Exception handlers
+// =============================================================================
+//  ReeOS - Interrupt and Exception handlers
+// =============================================================================
 
 #include "interrupts.h"
 #include "../../utils/logger.h"
@@ -212,18 +214,28 @@ void c_isr_simd_error(ISRFrame *f)
 // Master IRQ entrypoint called from ASM stubs
 void c_irq_handler(ISRFrame *f, uint64_t irq_num)
 {
-    if (irq_num >= 16) {
-        log_warn("IRQ out of range : %llu (vec=0x%llx)", irq_num, f->vec);
+    if (irq_num >= 16)
+    {
+        log_warn("IRS out of range: %llu (vec=0x%llx)", irq_num, f->vec);
         return;
     }
 
-    if (is_spurious((uint8_t)irq_num)) {
+    if (is_spurious((uint8_t)irq_num))
+    {
         log_warn("Spurious IRQ%llu ignored", irq_num);
         return;
     }
 
     if (irq_handlers[irq_num])
+    {
         irq_handlers[irq_num]((uint8_t)irq_num, f);
+    }
+
+    if (irq_num >= 8)
+    {
+        __asm__ volatile("outb %0, %1" : : "a"((uint8_t)0x20), "Nd"((uint16_t)PIC_SLAVE_CMD));
+    }
+    __asm__ volatile("outb %0, %1" : : "a"((uint8_t)0x20), "Nd"((uint16_t)PIC_MASTER_CMD));
 }
 
 // Minimal syscall handler for INT 0x80

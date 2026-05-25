@@ -1,4 +1,6 @@
-// ReeOS - Global Descriptor Table setup
+// =============================================================================
+//  ReeOS - Global Descriptor Table setup
+// =============================================================================
 
 #include "gdt.h"
 #include <stdint.h>

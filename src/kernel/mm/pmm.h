@@ -1,10 +1,14 @@
+// =============================================================================
+//  ReeOS - Physical Memory Manager (PMM) Header
+// =============================================================================
+
 #ifndef PMM_H
 #define PMM_H
 
 #include <stddef.h>
 #include <stdint.h>
 
-// pmm interface
+// PMM interface
 typedef struct
 {
     void (*init_pmm)(void *pmm_data, size_t size);
@@ -28,4 +32,4 @@ void free_frame_range(uint64_t start_frame, size_t num_frames);
 void dump_pmm(void);
 void pmm_test(void);
 
-#endif  // !PMM_H
+#endif // PMM_H

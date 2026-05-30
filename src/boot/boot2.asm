@@ -154,6 +154,10 @@ entry_protected_mode:
 
     mov esp, 0x90000            ; Temporary 32-bit stack
 
+    mov al, 0xFF
+    out 0x21, al
+    out 0xA1, al
+
     call setup_paging
 
     ; Load PML4 (0x1000) into CR3
@@ -318,7 +322,7 @@ gdt_end_64:
 
 gdt_descriptor_64:
     dw gdt_end_64 - gdt_start_64 - 1
-    dd gdt_start_64
+    dq gdt_start_64
 
 CODE_SEG_64 equ gdt_code_64 - gdt_start_64
 DATA_SEG_64 equ gdt_data_64 - gdt_start_64
